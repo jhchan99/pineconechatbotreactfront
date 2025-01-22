@@ -1,5 +1,4 @@
 from pinecone import Pinecone
-from pinecone_plugins.assistant.models.chat import Message
 import os
 from dotenv import load_dotenv
 
@@ -14,48 +13,27 @@ if not PINECONE_API_KEY:
 
 class ContentChatbot:
     def __init__(self):
-        """Initialize the chatbot with Pinecone assistant."""
+        """Initialize the chatbot with Pinecone."""
         self.pc = Pinecone(api_key=PINECONE_API_KEY)
-        self.assistant = self.pc.assistant.Assistant(
-            assistant_name="sworn-content-assistant"
-        )
+        self.index = self.pc.Index("swornvideorecommendationsystem")
         self.conversation_history = []
         
-    def prepare_message(self, user_input):
-        """Prepare the message for the assistant."""
-        return Message(content=user_input)
-        
-    def chat(self, user_input, stream=False):
+    def chat(self, user_input):
         """
         Main chat function that processes user input and returns a response.
         
         Args:
             user_input (str): The user's input message
-            stream (bool): Whether to stream the response (default: False)
             
         Returns:
             str: The assistant's response
         """
         try:
-            # Create message object
-            message = self.prepare_message(user_input)
-            
             # Add message to conversation history
             self.conversation_history.append({"role": "user", "content": user_input})
             
-            # Get response from assistant
-            if stream:
-                # Handle streaming response
-                chunks = self.assistant.chat(messages=[message], stream=True)
-                response_chunks = []
-                for chunk in chunks:
-                    if chunk:
-                        response_chunks.append(chunk)
-                response = "".join(response_chunks)
-            else:
-                # Handle regular response
-                response_obj = self.assistant.chat(messages=[message])
-                response = response_obj["message"]["content"]
+            # For now, return a simple response
+            response = f"I received your message: {user_input}"
             
             # Update conversation history
             self.conversation_history.append({"role": "assistant", "content": response})
@@ -70,23 +48,3 @@ class ContentChatbot:
             error_msg = f"Error processing chat: {str(e)}"
             print(error_msg)  # Log the error
             return f"I apologize, but I encountered an error. Please try again or rephrase your question."
-
-def main():
-    """Main function for testing the chatbot."""
-    chatbot = ContentChatbot()
-    
-    print("Content Chatbot initialized. Type 'quit' to exit.")
-    
-    while True:
-        user_input = input("\nYou: ").strip()
-        if not user_input:
-            continue
-            
-        if user_input.lower() == 'quit':
-            break
-            
-        response = chatbot.chat(user_input)
-        print("\nAssistant:", response)
-
-if __name__ == "__main__":
-    main()

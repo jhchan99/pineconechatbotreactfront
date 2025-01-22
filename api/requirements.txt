@@ -1,5 +1,6 @@
 pinecone-client>=3.0.0
-pinecone-assistant>=0.1.0
+pinecone-plugin-assistant>=0.1.0
+openai>=1.0.0
 python-dotenv>=1.0.0
 flask>=3.0.0
 gunicorn>=22.0.0

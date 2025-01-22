@@ -1,4 +1,5 @@
 from pinecone import Pinecone
+from pinecone_plugins.assistant.models.chat import Message
 import os
 from dotenv import load_dotenv
 

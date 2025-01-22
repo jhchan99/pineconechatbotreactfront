@@ -1,62 +1,56 @@
-from pinecone import Pinecone
-from pinecone_plugins.assistant.models.chat import Message
+import pinecone
 import os
 from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv()
 
-# Initialize API client with environment variable
+# Initialize Pinecone API client with environment variables
 PINECONE_API_KEY = os.getenv('PINECONE_API_KEY')
+PINECONE_ENVIRONMENT = os.getenv('PINECONE_ENVIRONMENT')
 
-if not PINECONE_API_KEY:
-    raise ValueError("Missing required environment variable. Please ensure PINECONE_API_KEY is set in .env")
+if not PINECONE_API_KEY or not PINECONE_ENVIRONMENT:
+    raise ValueError("Missing required environment variables. Ensure PINECONE_API_KEY and PINECONE_ENVIRONMENT are set in .env")
+
+pinecone.init(api_key=PINECONE_API_KEY, environment=PINECONE_ENVIRONMENT)
 
 class ContentChatbot:
     def __init__(self):
         """Initialize the chatbot with Pinecone."""
-        self.pc = Pinecone(api_key=PINECONE_API_KEY)
-        self.assistant = self.pc.assistant.Assistant(assistant_name="sworn-content-assistant")
+        # Connect to or create a Pinecone index
+        self.index_name = "sworn-content-assistant"
+        if self.index_name not in pinecone.list_indexes():
+            pinecone.create_index(self.index_name, dimension=512)  # Adjust dimensions based on embeddings
+        self.index = pinecone.Index(self.index_name)
         self.conversation_history = []
 
-    def chat(self, user_input, stream=False):
+    def chat(self, user_input):
         """
         Main chat function that processes user input and returns a response.
         
         Args:
             user_input (str): The user's input message
-            stream (bool): Whether to use streaming for the response
             
         Returns:
-            str or generator: The assistant's response or streaming chunks
+            str: The assistant's response
         """
         try:
-            # Create a message object for the user input
-            user_message = Message(content=user_input)
-            
-            # Append message to conversation history
+            # Add user input to conversation history
             self.conversation_history.append({"role": "user", "content": user_input})
+
+            # Mock logic for response generation
+            # Replace this with actual logic using embeddings, GPT, or Pinecone queries
+            assistant_reply = f"I received your message: {user_input}"
             
-            if stream:
-                # Stream response from assistant
-                chunks = self.assistant.chat(messages=[user_message], stream=True)
-                for chunk in chunks:
-                    if chunk:
-                        yield chunk
-            else:
-                # Get response from assistant
-                response = self.assistant.chat(messages=[user_message])
-                assistant_reply = response["message"]["content"]
-                
-                # Append assistant response to conversation history
-                self.conversation_history.append({"role": "assistant", "content": assistant_reply})
-                
-                # Keep conversation history manageable
-                if len(self.conversation_history) > 6:
-                    self.conversation_history = self.conversation_history[-6:]
-                
-                return assistant_reply
-        
+            # Add assistant response to conversation history
+            self.conversation_history.append({"role": "assistant", "content": assistant_reply})
+
+            # Keep conversation history manageable
+            if len(self.conversation_history) > 6:
+                self.conversation_history = self.conversation_history[-6:]
+
+            return assistant_reply
+
         except Exception as e:
             error_msg = f"Error processing chat: {str(e)}"
             print(error_msg)  # Log the error
@@ -70,8 +64,3 @@ if __name__ == "__main__":
     # Non-streaming response
     response = chatbot.chat(user_query)
     print("Assistant response (non-streaming):", response)
-    
-    # Streaming response
-    print("Assistant response (streaming):")
-    for chunk in chatbot.chat(user_query, stream=True):
-        print(chunk)
